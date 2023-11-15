@@ -1,11 +1,12 @@
-Hangar provides a local daemon for running Fly.io servers locally in Go.
+Hangar provides a local daemon for developing distributed Fly.io servers locally in Go.
 
 ## Usage
 
-To start the package at `./demo`, run:
+To start the package at `./demo` in this repository, you can:
 
 ```bash
-$ go run ./bin -p ./demo
+$ go get github.com/samthor/hangar/bin
+$ go run github.com/samthor/hangar/bin -p github.com/samthor/hangar/demo
 ```
 
 This starts a daemon with small number of machines all running in different 'regions'.
@@ -19,6 +20,7 @@ $ curl http://localhost:8080/info -H "fly-prefer-region: syd"
 ```
 
 The code inside `./lib` helps provide a layer that hides local development vs. the real Fly deployed environment.
+(It also works without either, but just provides sensible single-node defaults.)
 
 You can use it in your code like:
 
@@ -38,14 +40,6 @@ func main() {
   log.Fatal(http.ListenAndServe(hangar.ListenPort(), nil))
 }
 
-```
-
-### Start Multiple Instances
-
-You can use `curl` to kick off a few instances:
-
-```bash
-$
 ```
 
 ## Extensions/TODOs
