@@ -50,13 +50,6 @@ type ControlInfo struct {
 	Unknown   bool                    `json:"unknown,omitempty"` // whether there was a (hopefully) transient error in fetching
 }
 
-func (ci *ControlInfo) Remotes() (out []*InstanceInfo) {
-	for _, v := range ci.Instances {
-		out = append(out, &v)
-	}
-	return out
-}
-
 // Peers returns the map of peer address/port combos.
 func (ci *ControlInfo) PeerAddrOffset(offset uint16) map[string]netip.AddrPort {
 	out := make(map[string]netip.AddrPort)
