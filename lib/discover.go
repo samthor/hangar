@@ -28,8 +28,7 @@ type flyInstance struct {
 // This takes ~1ms in deploy (DNS lookup) relying on Fly's replication magic.
 func Discover(ctx context.Context) (*ControlInfo, error) {
 	ci := &ControlInfo{
-		Now:       time.Now().UnixMilli(),
-		Instances: make(map[string]InstanceInfo),
+		Now: time.Now().UnixMilli(),
 	}
 
 	// Fetch information from the local controller.
@@ -94,7 +93,7 @@ func Discover(ctx context.Context) (*ControlInfo, error) {
 
 			// check this logic in case we get weird results
 			if !i.IsSelf() {
-				ci.Instances[i.Machine] = i
+				ci.Instances = append(ci.Instances, i)
 			}
 		}
 

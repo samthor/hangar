@@ -5,21 +5,30 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"strconv"
 	"strings"
 )
 
 const (
+	// PortRange is used in dev mode: each instance is given a port range on localhost.
+	//
 	PortRange = 128
 )
 
 type InstanceInfo struct {
-	Machine      string `json:"machine"`
-	Region       string `json:"region"`
-	Address      string `json:"address"`
-	Port         uint16 `json:"port"`
+	Machine      string `json:"machine"` // the 8-character machine ID reported by Fly
+	Region       string `json:"region"`  // the 3-character region code
+	Address      string `json:"address"` // the private IPv6 of this instance
+	Port         uint16 `json:"port"`    // the default port of this instance
 	fallbackSelf bool
 }
 
+// Addr returns the netip.AddrPort for the target instance using its default public port.
+func (i *InstanceInfo) Addr() netip.AddrPort {
+	return i.AddrOffset(0)
+}
+
+// AddrOffset returns the netip.AddrPort reflecting the target machine plus a port offset.
 func (i *InstanceInfo) AddrOffset(offset uint16) netip.AddrPort {
 	if offset >= PortRange {
 		panic(fmt.Sprintf("cannot offset <0 or >=%d", PortRange))
@@ -29,10 +38,7 @@ func (i *InstanceInfo) AddrOffset(offset uint16) netip.AddrPort {
 	return netip.AddrPortFrom(addr, i.Port+offset)
 }
 
-func (i *InstanceInfo) Addr() netip.AddrPort {
-	return i.AddrOffset(0)
-}
-
+// IsSelf returns whether this InstanceInfo represents the currently running machine.
 func (i *InstanceInfo) IsSelf() bool {
 	if i.fallbackSelf {
 		return true
@@ -44,10 +50,20 @@ func (i *InstanceInfo) IsSelf() bool {
 	return false
 }
 
+// AsUint attempts to coerce the 8-character hex-encoded machine ID into a uint32.
+// It's possible that Fly changes the way machines are represented, but currently they are simply uint32 as hex.
+func (i *InstanceInfo) AsUint() (out uint32, ok bool) {
+	out64, err := strconv.ParseUint(i.Machine, 16, 32)
+	if err != nil {
+		return 0, false
+	}
+	return uint32(out64), true
+}
+
 type ControlInfo struct {
-	Now       int64                   `json:"now"`
-	Instances map[string]InstanceInfo `json:"instances"`
-	Unknown   bool                    `json:"unknown,omitempty"` // whether there was a (hopefully) transient error in fetching
+	Now       int64          `json:"now"`
+	Instances []InstanceInfo `json:"instances"`
+	Unknown   bool           `json:"unknown,omitempty"` // whether there was a (hopefully) transient error in fetching
 }
 
 // Peers returns the map of peer address/port combos.
@@ -81,27 +97,29 @@ func (ci *ControlInfo) ByAddrPort(ap netip.AddrPort) *InstanceInfo {
 		return nil
 	}
 
-	for machineId := range ci.Instances {
+	for index := range ci.Instances {
 		// TODO: lots of memcpy
-		i := ci.Instances[machineId]
-		if i.Address != ip {
-			continue
-		}
+		instance := ci.Instances[index]
 
 		if flyMachine != "" {
-			return &i // just match machine in real world
-		}
-
-		minPort := i.Port
-		maxPort := i.Port + PortRange
-		if port >= minPort && port < maxPort {
-			return &i
+			// Just match IP in real world, no weird port shenanigans.
+			if instance.Address == ip {
+				return &instance
+			}
+		} else {
+			// In dev, the instance is matched by its min/max port range (everything is on localhost).
+			minPort := instance.Port
+			maxPort := instance.Port + PortRange
+			if port >= minPort && port < maxPort {
+				return &instance
+			}
 		}
 	}
 
 	return nil
 }
 
+// FlyReplayHeader can be used to construct a reply that asks another instance to handle a request, rather than handling it directly.
 type FlyReplayHeader struct {
 	Region    string `json:"region,omitempty"`
 	Instance  string `json:"instance,omitempty"`
@@ -111,7 +129,7 @@ type FlyReplayHeader struct {
 	Now       int64  `json:"t,omitempty"`
 }
 
-// ForResponseHeader writes this FlyReplayHeader for your userspace code.
+// ForResponseHeader writes this FlyReplayHeader to attach to a header output.
 func (fr *FlyReplayHeader) ForResponseHeader() string {
 	parts := map[string]string{
 		"instance":  fr.Instance,
@@ -127,6 +145,7 @@ func (fr *FlyReplayHeader) ForResponseHeader() string {
 	var out []string
 	for key, value := range parts {
 		if value != "" {
+			// TODO: what happens if values include =, ; or other unescaped chars
 			out = append(out, fmt.Sprintf("%s=%s", key, value))
 		}
 	}

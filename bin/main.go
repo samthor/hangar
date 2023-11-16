@@ -123,19 +123,18 @@ func handleSpecialControl(r *http.Request) interface{} {
 	machine := r.URL.Query().Get("machine")
 
 	c := mesh.ControlInfo{
-		Now:       time.Now().UnixMilli(),
-		Instances: make(map[string]mesh.InstanceInfo),
+		Now: time.Now().UnixMilli(),
 	}
 	for _, i := range allInstances {
 		if !i.IsAlive() || i.MachineId == machine {
 			continue // don't include dead or ourselves
 		}
-		c.Instances[i.MachineId] = mesh.InstanceInfo{
+		c.Instances = append(c.Instances, mesh.InstanceInfo{
 			Machine: i.MachineId,
 			Region:  i.Region,
 			Address: "::1",
 			Port:    i.Port,
-		}
+		})
 	}
 
 	return &c
