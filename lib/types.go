@@ -16,7 +16,7 @@ const (
 )
 
 type InstanceInfo struct {
-	Machine      string `json:"machine"` // the 8-character machine ID reported by Fly
+	Machine      string `json:"machine"` // the machine ID reported by Fly
 	Region       string `json:"region"`  // the 3-character region code
 	Address      string `json:"address"` // the private IPv6 of this instance
 	Port         uint16 `json:"port"`    // the default port of this instance
@@ -50,14 +50,14 @@ func (i *InstanceInfo) IsSelf() bool {
 	return false
 }
 
-// AsUint attempts to coerce the 8-character hex-encoded machine ID into a uint32.
-// It's possible that Fly changes the way machines are represented, but currently they are simply uint32 as hex.
-func (i *InstanceInfo) AsUint() (out uint32, ok bool) {
-	out64, err := strconv.ParseUint(i.Machine, 16, 32)
+// AsUint attempts to coerce the hex-encoded machine ID into a uint64.
+// It's possible that Fly changes the way machines are represented, but as of 2023-11, they are 14-character hex codes (56 bits).
+func (i *InstanceInfo) AsUint() (out uint64, ok bool) {
+	out, err := strconv.ParseUint(i.Machine, 16, 64)
 	if err != nil {
 		return 0, false
 	}
-	return uint32(out64), true
+	return out, true
 }
 
 type ControlInfo struct {
