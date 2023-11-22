@@ -32,7 +32,7 @@ func Port() int {
 
 // ListenPort returns a string for a HTTP server to listen on.
 func ListenPort() string {
-	return fmt.Sprintf(":%d", Port())
+	return ListenPortOffset(0)
 }
 
 // PortOffset returns this port plus an offset.
@@ -47,5 +47,13 @@ func PortOffset(offset uint16) int {
 
 // ListenPortOffset returns a string for a HTTP server to listen on.
 func ListenPortOffset(offset uint16) string {
-	return fmt.Sprintf(":%d", PortOffset(offset))
+	var host string
+	if IsDeploy() {
+		// be explicit for... reasons
+		host = "[::]"
+	} else {
+		// stop egregious firewalls; if you need local dev network access...?
+		host = "localhost"
+	}
+	return fmt.Sprintf("%s:%d", host, PortOffset(offset))
 }

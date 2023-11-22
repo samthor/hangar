@@ -6,7 +6,9 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
+	"time"
 
 	mesh "github.com/samthor/hangar/lib"
 )
@@ -39,6 +41,22 @@ func main() {
 				fmt.Fprintf(w, ".. inst=%s secret=%v\n", instance.Machine, remoteSecretCode)
 			}
 		}
+	})
+
+	http.HandleFunc("/shutdown", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Ok, shutting down gracefully")
+		go func() {
+			time.Sleep(time.Millisecond * 10)
+			os.Exit(0)
+		}()
+	})
+
+	http.HandleFunc("/die", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Ok, shutting down with error code")
+		go func() {
+			time.Sleep(time.Millisecond * 10)
+			os.Exit(1)
+		}()
 	})
 
 	go func() {

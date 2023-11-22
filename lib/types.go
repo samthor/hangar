@@ -11,7 +11,7 @@ import (
 
 const (
 	// PortRange is used in dev mode: each instance is given a port range on localhost.
-	//
+	// Requests for ports via the helpers outside this range will panic.
 	PortRange = 128
 )
 

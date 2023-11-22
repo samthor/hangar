@@ -44,10 +44,10 @@ func main() {
 
 ## Extensions/TODOs
 
-This just discovers instances in the same process group (in production).
-It doesn't even know/care about process groups locally.
+This has no knowledge of process groups.
+In production, actively only discovers instances in the same process group&mdash;has no knowledge of them.
 
 This currently runs Go packages, but really, it could run any command N times&mdash;Hangar just sets `$PORT` and other environment variables.
 
-Assumes that the package under control stops after some time (does not kill it when idle).
-If a process exits, it's not restarted for any reason (this is different than Fly production, which restarts all non-zero codes).
+Assumes that the processes under control stop after some time (does not kill it when idle).
+Restarts on non-zero exit code (same as Fly).

@@ -86,9 +86,10 @@ func (i *Instance) EnsureRun() bool {
 		return false
 	}
 
-	ch := i.run()
-	i.runCh = ch
-	go func() {
+	i.runCh = i.run()
+
+	var listenForDone func(ch <-chan *exec.ExitError)
+	listenForDone = func(ch <-chan *exec.ExitError) {
 		err := <-ch
 		var exitCode int
 		if err != nil {
@@ -98,8 +99,21 @@ func (i *Instance) EnsureRun() bool {
 
 		i.lock.Lock()
 		defer i.lock.Unlock()
-		i.runCh = nil
-	}()
+
+		if i.runCh != ch {
+			panic("bad ch on run end")
+		}
+
+		if exitCode != 0 {
+			// restart, non-zero exit (can't call EnsureRun, already under lock)
+			i.runCh = i.run()
+			go listenForDone(i.runCh)
+		} else {
+			i.runCh = nil
+		}
+	}
+
+	go listenForDone(i.runCh)
 
 	return true
 }

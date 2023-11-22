@@ -21,13 +21,18 @@ const (
 )
 
 var (
-	flagPort        = flag.Uint("port", 8080, "the forward-facing web address")
+	flagPort         = flag.Uint("port", 8080, "the forward-facing web address")
+	flagAllowNetwork = flag.Bool("a", false, "whether to allow remote access")
+
 	flagCount       = flag.Int("c", 4, "number of instances to run")
 	flagPackage     = flag.String("p", "", "go package to run")
 	flagRegion      = flag.String("r", "syd,ord,ams", "round-robin around these virtual regions")
-	flagSeed        = flag.Int64("s", 1, "seed for random machine IDs")
-	flagActive      = flag.Int("a", 2, "if handling >requests, try another machine")
-	flagReplayCount = flag.Int("replay", 4, "number of times a request can be replayedf")
+	flagSeed        = flag.Int64("seed", 1, "seed for random machine IDs")
+	flagStart       = flag.Bool("s", false, "whether to start servers without requests")
+	flagActive      = flag.Int("load", 2, "if handling >requests, try another machine")
+	flagReplayCount = flag.Int("replay", 4, "number of times a request can be replayed")
+
+	flagAliveOnly = flag.Bool("alive-only", false, "whether to only report live instances via the faux-discover endpoint: it's unclear what Fly.io's intended behavior is :thinking_face:")
 )
 
 var (
@@ -89,10 +94,22 @@ func main() {
 		log.Printf("generated machine=%s (region=%s port=%d)", i.MachineId, i.Region, port)
 	}
 
+	if *flagStart {
+		log.Printf("starting instances...")
+		for _, i := range allInstances {
+			i.EnsureRun()
+		}
+	}
+
 	var handler http.ServeMux
 	handler.HandleFunc("/__/", handleSpecial)
 	handler.Handle("/", router)
-	http.ListenAndServe(fmt.Sprintf("localhost:%d", *flagPort), &handler)
+
+	var host string
+	if !*flagAllowNetwork {
+		host = "localhost"
+	}
+	http.ListenAndServe(fmt.Sprintf("%s:%d", host, *flagPort), &handler)
 }
 
 func handleSpecial(w http.ResponseWriter, r *http.Request) {
@@ -126,8 +143,11 @@ func handleSpecialControl(r *http.Request) interface{} {
 		Now: time.Now().UnixMilli(),
 	}
 	for _, i := range allInstances {
-		if !i.IsAlive() || i.MachineId == machine {
-			continue // don't include dead or ourselves
+		if *flagAliveOnly && !i.IsAlive() {
+			continue // don't include dead instances
+		}
+		if i.MachineId == machine {
+			continue // don't include requestor
 		}
 		c.Instances = append(c.Instances, mesh.InstanceInfo{
 			Machine: i.MachineId,
