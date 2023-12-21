@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 
@@ -24,31 +25,31 @@ type HttpFunc func(http.ResponseWriter, *http.Request) interface{}
 // Http returns a http.HandlerFunc that wraps a HttpFunc capable of convenient return types.
 func Http(fn HttpFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
+
 		out := fn(w, r)
 		switch x := out.(type) {
 		case nil:
 			return
+		case error:
+			err = x
 		case []byte:
 			w.Write(x)
-			return
+		case io.Reader:
+			_, err = io.Copy(w, x)
 		case string:
 			w.Write([]byte(x))
-			return
 		case int:
 			w.WriteHeader(x)
-			return
-		case error:
-			// ignore
 		default:
 			w.Header().Set("Content-Type", "application/json")
-			err := json.NewEncoder(w).Encode(x)
-			if err == nil {
-				return
-			}
-			out = err
+			err = json.NewEncoder(w).Encode(x)
 		}
 
-		log.Printf("got err handling %s: err=%v", r.URL.Path, out)
+		if err == nil {
+			return
+		}
+		log.Printf("got err handling %s: err=%v", r.URL.Path, err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
