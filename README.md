@@ -42,6 +42,11 @@ func main() {
 
 ```
 
+### Mount
+
+Use `StoragePath()` with a mounted path as a no-op in prod, but to get a local path in dev created under your home directory (in "~/.fly/hangar/").
+This doesn't quite match Fly's semantics.
+
 ## Extensions/TODOs
 
 This has no knowledge of process groups.

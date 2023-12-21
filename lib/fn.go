@@ -53,7 +53,7 @@ func ListenPortOffset(offset uint16) string {
 		host = "[::]"
 	} else {
 		// stop egregious firewalls; if you need local dev network access...?
-		host = "localhost"
+		host = "[::1]"
 	}
 	return fmt.Sprintf("%s:%d", host, PortOffset(offset))
 }
