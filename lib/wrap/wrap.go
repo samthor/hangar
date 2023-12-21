@@ -30,6 +30,7 @@ func Http(fn HttpFunc) http.HandlerFunc {
 			return
 		case []byte:
 			w.Write(x)
+			return
 		case string:
 			w.Write([]byte(x))
 			return
@@ -47,7 +48,7 @@ func Http(fn HttpFunc) http.HandlerFunc {
 			out = err
 		}
 
-		log.Printf("got err handling %s: %v", r.URL.Path, out)
+		log.Printf("got err handling %s: err=%v", r.URL.Path, out)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
