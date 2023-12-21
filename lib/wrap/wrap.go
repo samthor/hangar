@@ -36,6 +36,9 @@ func Http(fn HttpFunc) http.HandlerFunc {
 		case []byte:
 			w.Write(x)
 		case io.Reader:
+			if rc, ok := x.(io.ReadCloser); ok {
+				defer rc.Close()
+			}
 			_, err = io.Copy(w, x)
 		case string:
 			w.Write([]byte(x))
