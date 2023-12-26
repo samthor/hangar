@@ -18,6 +18,27 @@ func StoragePath(source string) (out string) {
 	return p
 }
 
+func StorageFile(source ...string) (out string) {
+	out = filepath.Join(source...)
+	out = resolveStoragePath(out)
+
+	// swallow err
+	dir := filepath.Dir(out)
+	os.MkdirAll(dir, 0755)
+
+	return out
+}
+
+func StorageDir(source ...string) (out string) {
+	out = filepath.Join(source...)
+	out = resolveStoragePath(out)
+
+	// swallow err
+	os.MkdirAll(out, 0755)
+
+	return out
+}
+
 func resolveStoragePath(source string) string {
 	if !filepath.IsAbs(source) {
 		// prevent escape
