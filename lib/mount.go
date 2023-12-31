@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 )
 
-// StoragePath returns the storage page in dev/prod for the given mount.
-// In a local environment, places this in `$HOME/.fly/hangar/<machine>/mount/<path>`.
-// Creates the directory if it can (swallows err).
+// StorageDir creates and returns the given directory in prod/dev.
 // Protects against escape from this path. But probably not against untrusted user input.
+// This must be within a registered mount on the prod machine.
+// In a local environment, places this in `$HOME/.fly/hangar/<machine>/mount/<path>`.
 func StoragePath(source string) (out string) {
 	p := resolveStoragePath(source)
 
@@ -18,6 +18,10 @@ func StoragePath(source string) (out string) {
 	return p
 }
 
+// StorageFile creates and returns the given directory in prod/dev, stripping the last component (ignoring it).
+// Protects against escape from this path. But probably not against untrusted user input.
+// This must be within a registered mount on the prod machine.
+// In a local environment, places this in `$HOME/.fly/hangar/<machine>/mount/<path>`.
 func StorageFile(source ...string) (out string) {
 	out = filepath.Join(source...)
 	out = resolveStoragePath(out)
@@ -29,6 +33,10 @@ func StorageFile(source ...string) (out string) {
 	return out
 }
 
+// StorageDir creates and returns the given directory in prod/dev.
+// Protects against escape from this path. But probably not against untrusted user input.
+// This must be within a registered mount on the prod machine.
+// In a local environment, places this in `$HOME/.fly/hangar/<machine>/mount/<path>`.
 func StorageDir(source ...string) (out string) {
 	out = filepath.Join(source...)
 	out = resolveStoragePath(out)
